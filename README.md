@@ -1,8 +1,8 @@
 # CLI Task Manager
 
-Un gestionnaire de tâches en ligne de commande écrit en Dart pur.
+Un gestionnaire de tâches en cli écrit en Dart pur.
 
-![CLI Task Manager](TASKLI.png)
+![CLI Task Manager](docs/TASKLI.png)
 
 ## Fonctionnalités
 
