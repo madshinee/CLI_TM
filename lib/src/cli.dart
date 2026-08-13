@@ -3,14 +3,23 @@ import 'package:cli_task_manager/src/exceptions.dart';
 import 'package:cli_task_manager/src/interfaces.dart';
 import 'package:cli_task_manager/src/models/task.dart';
 import 'package:cli_task_manager/src/service.dart';
+import 'package:cli_task_manager/src/formatter.dart';
 
 class TaskCli {
   final TaskService service;
   final String storagePath;
+  final TaskFormatter formatter;
 
-  TaskCli(this.service, {this.storagePath = 'tasks.json'});
+  TaskCli(this.service, {this.storagePath = 'tasks.json', TaskFormatter? formatter})
+      : formatter = formatter ?? ConsoleTaskFormatter();
 
   Future<void> run(List<String> args) async {
+    // Handle --help flag
+    if (args.contains('--help') || args.contains('-h')) {
+      _printHelp();
+      return;
+    }
+
     final interactive = args.isEmpty || args.contains('--interactive') || args.contains('-i');
 
     if (interactive) {
@@ -33,6 +42,9 @@ class TaskCli {
           break;
         case 'delete':
           await _handleDelete(args);
+          break;
+        case 'count':
+          await _handleCount(args);
           break;
         case 'help':
           _printHelp();
@@ -90,6 +102,9 @@ class TaskCli {
             break;
           case 'delete':
             await _handleDelete(args);
+            break;
+          case 'count':
+            await _handleCount(args);
             break;
           default:
             print('Unknown command: $command');
@@ -183,23 +198,36 @@ class TaskCli {
     );
 
     print('Task added: ${task.id}');
-    print(task.toString());
+    print(formatter.formatTask(task));
   }
 
   Future<void> _handleList(List<String> args) async {
     final sortByPriority = !args.contains('--date');
-    final tasks = await service.listTasks(sortByPriority: sortByPriority);
+    final doneOnly = args.contains('--done');
+    final pendingOnly = args.contains('--pending');
 
-    if (tasks.isEmpty) {
-      print('No tasks found.');
+    if (doneOnly && pendingOnly) {
+      print('Error: Cannot use --done and --pending together.');
       return;
     }
 
-    print('Tasks (${tasks.length}):');
-    print('---');
-    for (final task in tasks) {
-      print(task.toString());
+    final tasks = await service.listTasks(
+      sortByPriority: sortByPriority,
+      doneOnly: doneOnly ? true : null,
+      pendingOnly: pendingOnly ? true : null,
+    );
+
+    if (tasks.isEmpty) {
+      final filter = doneOnly ? 'done' : pendingOnly ? 'pending' : '';
+      if (filter.isNotEmpty) {
+        print('No $filter tasks found.');
+      } else {
+        print('No tasks found.');
+      }
+      return;
     }
+
+    print(formatter.formatTaskListWithStats(tasks));
   }
 
   Future<void> _handleDone(List<String> args) async {
@@ -224,19 +252,53 @@ class TaskCli {
     print('Task deleted: $id');
   }
 
+  Future<void> _handleCount(List<String> args) async {
+    final doneOnly = args.contains('--done');
+    final pendingOnly = args.contains('--pending');
+
+    if (doneOnly && pendingOnly) {
+      print('Error: Cannot use --done and --pending together.');
+      return;
+    }
+
+    final count = await service.getTaskCount(
+      doneOnly: doneOnly ? true : pendingOnly ? false : null,
+    );
+
+    final filter = doneOnly ? 'done' : pendingOnly ? 'pending' : 'total';
+    print('$filter tasks: $count');
+  }
+
   void _printHelp() {
     print('CLI Task Manager');
     print('---');
     print('Commands:');
     print('  add <title> <priority> [deadline] [--urgent <level>]  Add a new task');
-    print('  list [--date]                                          List all tasks');
+    print('  list [--date] [--done] [--pending]                    List all tasks');
     print('  done <id>                                              Mark task as done');
     print('  delete <id>                                            Delete a task');
+    print('  count [--done] [--pending]                             Show task count');
     print('  help                                                   Show this help');
     print('  exit                                                   Quit the application');
+    print('');
+    print('Options:');
+    print('  --help, -h     Show this help message');
+    print('  --interactive  Start in interactive mode');
+    print('  -i             Alias for --interactive');
+    print('');
+    print('List filters:');
+    print('  --date         Sort by date instead of priority');
+    print('  --done         Show only completed tasks');
+    print('  --pending      Show only pending tasks');
     print('');
     print('Priorities: low, medium, high');
     print('Deadline format: YYYY-MM-DD');
     print('Urgency level: 1-5 (only with --urgent flag)');
+    print('');
+    print('Examples:');
+    print('  dart run bin/main.dart add "Buy groceries" high 2026-12-31');
+    print('  dart run bin/main.dart add "Fix bug" high --urgent 5');
+    print('  dart run bin/main.dart list --pending');
+    print('  dart run bin/main.dart count --done');
   }
 }

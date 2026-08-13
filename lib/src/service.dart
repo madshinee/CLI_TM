@@ -27,7 +27,7 @@ class TaskManagerService implements TaskService {
     }
 
     final id = _generateId();
-    final createdAt = DateTime.now().subtract(const Duration(days: 21));
+    final createdAt = DateTime.now();
 
     Task task;
     if (isUrgent) {
@@ -59,8 +59,8 @@ class TaskManagerService implements TaskService {
     if (task == null) {
       throw TaskNotFoundException(id);
     }
-    task.markDone();
-    await repository.update(task);
+    final updatedTask = task.copyWith(isDone: true);
+    await repository.update(updatedTask);
   }
 
   @override
@@ -69,21 +69,35 @@ class TaskManagerService implements TaskService {
   }
 
   @override
-  Future<List<Task>> listTasks({bool sortByPriority = true}) async {
+  Future<List<Task>> listTasks({bool sortByPriority = true, bool? doneOnly, bool? pendingOnly}) async {
     final tasks = await repository.getAll();
-    final list = tasks.toList();
-    
+    var list = tasks.toList();
+
+    // Apply filters
+    if (doneOnly == true) {
+      list = list.where((t) => t.isDone).toList();
+    } else if (pendingOnly == true) {
+      list = list.where((t) => !t.isDone).toList();
+    }
+
     if (sortByPriority) {
       list.sort();
     } else {
       list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     }
-    
+
     return list;
   }
 
   @override
-  Future<int> getTaskCount() async {
+  Future<int> getTaskCount({bool? doneOnly}) async {
+    if (doneOnly == true) {
+      final tasks = await repository.getAll();
+      return tasks.where((t) => t.isDone).length;
+    } else if (doneOnly == false) {
+      final tasks = await repository.getAll();
+      return tasks.where((t) => !t.isDone).length;
+    }
     return await repository.getCount();
   }
 

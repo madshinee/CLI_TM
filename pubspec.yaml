@@ -1,6 +1,10 @@
 name: cli_task_manager
 description: A CLI task management app in pure Dart.
 version: 1.0.0
+homepage: https://github.com/yourusername/cli_task_manager
+repository: https://github.com/yourusername/cli_task_manager
+issue_tracker: https://github.com/yourusername/cli_task_manager/issues
+
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
@@ -9,3 +13,4 @@ dependencies:
 
 dev_dependencies:
   test: ^1.25.0
+  lints: ^3.0.0

@@ -63,35 +63,7 @@ class JsonTaskRepository implements TaskRepository {
   }
 
   Task _fromJson(Map<String, dynamic> json) {
-    final id = json['id'] as String;
-    final title = json['title'] as String;
-    final priority = PriorityExtension.fromString(json['priority'] as String);
-    final deadline = json['deadline'] != null 
-        ? DateTime.parse(json['deadline'] as String) 
-        : null;
-    final isDone = json['isDone'] as bool? ?? false;
-    final createdAt = DateTime.parse(json['createdAt'] as String);
-    final type = json['type'] as String?;
-
-    if (type == 'urgent') {
-      final urgencyLevel = json['urgencyLevel'] as int? ?? 3;
-      return UrgentTask(
-        id: id,
-        title: title,
-        priority: priority,
-        deadline: deadline,
-        urgencyLevel: urgencyLevel,
-        createdAt: createdAt,
-      )..isDone = isDone;
-    } else {
-      return RegularTask(
-        id: id,
-        title: title,
-        priority: priority,
-        deadline: deadline,
-        createdAt: createdAt,
-      )..isDone = isDone;
-    }
+    return Task.fromJson(json);
   }
 
   @override

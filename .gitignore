@@ -3,3 +3,8 @@ pubspec.lock
 tasks.json
 .idea/
 *.iml
+*.json
+!pubspec.yaml
+!analysis_options.yaml
+!README.md
+!LICENSE

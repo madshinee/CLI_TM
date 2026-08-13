@@ -6,3 +6,4 @@ export 'src/interfaces.dart';
 export 'src/repository.dart';
 export 'src/service.dart';
 export 'src/cli.dart';
+export 'src/formatter.dart';

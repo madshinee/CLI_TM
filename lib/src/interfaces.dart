@@ -13,11 +13,12 @@ abstract class TaskService {
   Future<Task> addTask(String title, Priority priority, DateTime? deadline, {bool isUrgent = false, int? urgencyLevel});
   Future<void> markTaskDone(String id);
   Future<void> deleteTask(String id);
-  Future<List<Task>> listTasks({bool sortByPriority = true});
-  Future<int> getTaskCount();
+  Future<List<Task>> listTasks({bool sortByPriority = true, bool? doneOnly, bool? pendingOnly});
+  Future<int> getTaskCount({bool? doneOnly});
 }
 
 abstract class TaskFormatter {
   String formatTask(Task task);
   String formatTaskList(List<Task> tasks);
+  String formatTaskListWithStats(List<Task> tasks);
 }
