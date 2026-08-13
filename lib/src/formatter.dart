@@ -24,6 +24,7 @@ class ConsoleTaskFormatter implements TaskFormatter {
     return buffer.toString();
   }
 
+  @override
   String formatTaskListWithStats(List<Task> tasks) {
     if (tasks.isEmpty) {
       return 'No tasks found.';

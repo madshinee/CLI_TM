@@ -1,12 +1,29 @@
-import 'dart:math';
 import 'package:cli_task_manager/src/exceptions.dart';
 import 'package:cli_task_manager/src/interfaces.dart';
 import 'package:cli_task_manager/src/models/task.dart';
+import 'package:cli_task_manager/src/usecases/add_task.dart';
+import 'package:cli_task_manager/src/usecases/delete_task.dart';
+import 'package:cli_task_manager/src/usecases/list_tasks.dart';
+import 'package:cli_task_manager/src/usecases/toggle_task_done.dart';
+import 'package:cli_task_manager/src/usecases/update_task_title.dart';
 
+/// Service layer that orchestrates task operations by delegating to
+/// dedicated use-case classes.
 class TaskManagerService implements TaskService {
-  final TaskRepository repository;
+  TaskManagerService(this.repository) {
+    _addTask = AddTask(repository);
+    _listTasks = ListTasks(repository);
+    _toggleTaskDone = ToggleTaskDone(repository);
+    _deleteTask = DeleteTask(repository);
+    _updateTaskTitle = UpdateTaskTitle(repository);
+  }
 
-  TaskManagerService(this.repository);
+  final TaskRepository repository;
+  late final AddTask _addTask;
+  late final ListTasks _listTasks;
+  late final ToggleTaskDone _toggleTaskDone;
+  late final DeleteTask _deleteTask;
+  late final UpdateTaskTitle _updateTaskTitle;
 
   @override
   Future<Task> addTask(
@@ -15,42 +32,14 @@ class TaskManagerService implements TaskService {
     DateTime? deadline, {
     bool isUrgent = false,
     int? urgencyLevel,
-  }) async {
-    if (title.trim().isEmpty) {
-      throw TaskManagerException('Task title cannot be empty');
-    }
-
-    if (isUrgent && urgencyLevel != null) {
-      if (urgencyLevel < 1 || urgencyLevel > 5) {
-        throw InvalidUrgencyLevelException(urgencyLevel);
-      }
-    }
-
-    final id = _generateId();
-    final createdAt = DateTime.now();
-
-    Task task;
-    if (isUrgent) {
-      task = UrgentTask(
-        id: id,
-        title: title.trim(),
-        priority: priority,
-        deadline: deadline,
-        urgencyLevel: urgencyLevel ?? 3,
-        createdAt: createdAt,
-      );
-    } else {
-      task = RegularTask(
-        id: id,
-        title: title.trim(),
-        priority: priority,
-        deadline: deadline,
-        createdAt: createdAt,
-      );
-    }
-
-    await repository.add(task);
-    return task;
+  }) {
+    return _addTask(
+      title: title,
+      priority: priority,
+      deadline: deadline,
+      isUrgent: isUrgent,
+      urgencyLevel: urgencyLevel,
+    );
   }
 
   @override
@@ -64,29 +53,27 @@ class TaskManagerService implements TaskService {
   }
 
   @override
-  Future<void> deleteTask(String id) async {
-    await repository.delete(id);
+  Future<void> toggleTaskDone(String id) {
+    return _toggleTaskDone(id);
   }
 
   @override
-  Future<List<Task>> listTasks({bool sortByPriority = true, bool? doneOnly, bool? pendingOnly}) async {
-    final tasks = await repository.getAll();
-    var list = tasks.toList();
+  Future<void> deleteTask(String id) {
+    return _deleteTask(id);
+  }
 
-    // Apply filters
-    if (doneOnly == true) {
-      list = list.where((t) => t.isDone).toList();
-    } else if (pendingOnly == true) {
-      list = list.where((t) => !t.isDone).toList();
-    }
+  @override
+  Future<void> updateTaskTitle(String id, String newTitle) {
+    return _updateTaskTitle(id, newTitle);
+  }
 
-    if (sortByPriority) {
-      list.sort();
-    } else {
-      list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    }
-
-    return list;
+  @override
+  Future<List<Task>> listTasks({bool sortByPriority = true, bool? doneOnly, bool? pendingOnly}) {
+    return _listTasks(
+      sortByPriority: sortByPriority,
+      doneOnly: doneOnly,
+      pendingOnly: pendingOnly,
+    );
   }
 
   @override
@@ -98,14 +85,6 @@ class TaskManagerService implements TaskService {
       final tasks = await repository.getAll();
       return tasks.where((t) => !t.isDone).length;
     }
-    return await repository.getCount();
-  }
-
-  String _generateId() {
-    final random = Random();
-    final chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    return String.fromCharCodes(
-      Iterable.generate(8, (_) => chars.codeUnitAt(random.nextInt(chars.length))),
-    );
+    return repository.getCount();
   }
 }

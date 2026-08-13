@@ -6,12 +6,12 @@ import 'package:cli_task_manager/src/models/task.dart';
 import 'package:path/path.dart' as p;
 
 class JsonTaskRepository implements TaskRepository {
-  final String filePath;
-  final Map<String, Task> _tasks = {};
-
   JsonTaskRepository(this.filePath) {
     _loadFromFile();
   }
+
+  final String filePath;
+  final Map<String, Task> _tasks = {};
 
   void _loadFromFile() {
     try {
@@ -29,7 +29,7 @@ class JsonTaskRepository implements TaskRepository {
 
       final List<dynamic> jsonList = json.decode(content);
       _tasks.clear();
-      
+
       for (final item in jsonList) {
         final task = _fromJson(item as Map<String, dynamic>);
         _tasks[task.id] = task;
@@ -47,7 +47,7 @@ class JsonTaskRepository implements TaskRepository {
     try {
       final file = File(filePath);
       final dir = p.dirname(filePath);
-      
+
       if (!Directory(dir).existsSync()) {
         Directory(dir).createSync(recursive: true);
       }

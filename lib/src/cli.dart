@@ -2,16 +2,15 @@ import 'dart:io';
 import 'package:cli_task_manager/src/exceptions.dart';
 import 'package:cli_task_manager/src/interfaces.dart';
 import 'package:cli_task_manager/src/models/task.dart';
-import 'package:cli_task_manager/src/service.dart';
 import 'package:cli_task_manager/src/formatter.dart';
 
 class TaskCli {
+  TaskCli(this.service, {this.storagePath = 'tasks.json', TaskFormatter? formatter})
+      : formatter = formatter ?? ConsoleTaskFormatter();
+
   final TaskService service;
   final String storagePath;
   final TaskFormatter formatter;
-
-  TaskCli(this.service, {this.storagePath = 'tasks.json', TaskFormatter? formatter})
-      : formatter = formatter ?? ConsoleTaskFormatter();
 
   Future<void> run(List<String> args) async {
     // Handle --help flag
@@ -40,8 +39,14 @@ class TaskCli {
         case 'done':
           await _handleDone(args);
           break;
+        case 'toggle':
+          await _handleToggle(args);
+          break;
         case 'delete':
           await _handleDelete(args);
+          break;
+        case 'update':
+          await _handleUpdate(args);
           break;
         case 'count':
           await _handleCount(args);
@@ -53,7 +58,7 @@ class TaskCli {
           print('Unknown command: $command');
           _printHelp();
       }
-    } on TaskManagerException catch (e) {
+    } on TaskException catch (e) {
       print('Error: $e');
     } catch (e) {
       print('Unexpected error: $e');
@@ -100,8 +105,14 @@ class TaskCli {
           case 'done':
             await _handleDone(args);
             break;
+          case 'toggle':
+            await _handleToggle(args);
+            break;
           case 'delete':
             await _handleDelete(args);
+            break;
+          case 'update':
+            await _handleUpdate(args);
             break;
           case 'count':
             await _handleCount(args);
@@ -110,7 +121,7 @@ class TaskCli {
             print('Unknown command: $command');
             print('Type "help" for available commands.');
         }
-      } on TaskManagerException catch (e) {
+      } on TaskException catch (e) {
         print('Error: $e');
       } catch (e) {
         print('Unexpected error: $e');
@@ -121,9 +132,9 @@ class TaskCli {
   List<String> _parseInput(String input) {
     final result = <String>[];
     final buffer = StringBuffer();
-    bool inQuotes = false;
+    var inQuotes = false;
 
-    for (int i = 0; i < input.length; i++) {
+    for (var i = 0; i < input.length; i++) {
       final char = input[i];
 
       if (char == '"') {
@@ -156,7 +167,7 @@ class TaskCli {
     final title = args[1];
     final priorityStr = args[2];
     DateTime? deadline;
-    bool isUrgent = false;
+    var isUrgent = false;
     int? urgencyLevel;
 
     // Parse deadline if present (format: YYYY-MM-DD)
@@ -241,6 +252,17 @@ class TaskCli {
     print('Task marked as done: $id');
   }
 
+  Future<void> _handleToggle(List<String> args) async {
+    if (args.length < 2) {
+      print('Usage: toggle <task-id>');
+      return;
+    }
+
+    final id = args[1];
+    await service.toggleTaskDone(id);
+    print('Task toggled: $id');
+  }
+
   Future<void> _handleDelete(List<String> args) async {
     if (args.length < 2) {
       print('Usage: delete <task-id>');
@@ -250,6 +272,20 @@ class TaskCli {
     final id = args[1];
     await service.deleteTask(id);
     print('Task deleted: $id');
+  }
+
+  Future<void> _handleUpdate(List<String> args) async {
+    if (args.length < 3) {
+      print('Usage: update <task-id> <new-title>');
+      print('Example: update abc123 "New task title"');
+      return;
+    }
+
+    final id = args[1];
+    final newTitle = args[2];
+
+    await service.updateTaskTitle(id, newTitle);
+    print('Task title updated: $id');
   }
 
   Future<void> _handleCount(List<String> args) async {
@@ -276,7 +312,9 @@ class TaskCli {
     print('  add <title> <priority> [deadline] [--urgent <level>]  Add a new task');
     print('  list [--date] [--done] [--pending]                    List all tasks');
     print('  done <id>                                              Mark task as done');
+    print('  toggle <id>                                            Toggle task done status');
     print('  delete <id>                                            Delete a task');
+    print('  update <id> <new-title>                                Update task title');
     print('  count [--done] [--pending]                             Show task count');
     print('  help                                                   Show this help');
     print('  exit                                                   Quit the application');
@@ -296,9 +334,9 @@ class TaskCli {
     print('Urgency level: 1-5 (only with --urgent flag)');
     print('');
     print('Examples:');
-    print('  dart run bin/main.dart add "Buy groceries" high 2026-12-31');
-    print('  dart run bin/main.dart add "Fix bug" high --urgent 5');
-    print('  dart run bin/main.dart list --pending');
-    print('  dart run bin/main.dart count --done');
+    print('  dart run bin/task_cli.dart add "Buy groceries" high 2026-12-31');
+    print('  dart run bin/task_cli.dart add "Fix bug" high --urgent 5');
+    print('  dart run bin/task_cli.dart list --pending');
+    print('  dart run bin/task_cli.dart count --done');
   }
 }

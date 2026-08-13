@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:cli_task_manager/src/exceptions.dart';
 
 enum Priority { low, medium, high }
@@ -40,14 +41,7 @@ extension PriorityExtension on Priority {
 }
 
 abstract class Task implements Comparable<Task> {
-  final String id;
-  final String title;
-  final Priority priority;
-  final DateTime? deadline;
-  final bool isDone;
-  final DateTime createdAt;
-
-  Task({
+  const Task({
     required this.id,
     required this.title,
     required this.priority,
@@ -56,21 +50,39 @@ abstract class Task implements Comparable<Task> {
     required this.createdAt,
   });
 
-  Task copyWith({
-    String? id,
-    String? title,
-    Priority? priority,
+  /// Factory constructor that creates a [Task] with sensible defaults.
+  ///
+  /// When [isUrgent] is `true`, an [UrgentTask] is created (optionally with
+  /// a custom [urgencyLevel]). Otherwise a [RegularTask] is created.
+  factory Task.create({
+    required String title,
+    Priority priority = Priority.medium,
     DateTime? deadline,
-    bool? isDone,
-    DateTime? createdAt,
-  });
+    bool isUrgent = false,
+    int? urgencyLevel,
+  }) {
+    final id = _generateId();
+    final createdAt = DateTime.now();
 
-  void markDone() {
-    // Tasks are immutable, so markDone returns a new instance
-    // This method is kept for backward compatibility but should use copyWith
+    if (isUrgent) {
+      return UrgentTask(
+        id: id,
+        title: title,
+        priority: priority,
+        deadline: deadline,
+        urgencyLevel: urgencyLevel ?? 3,
+        createdAt: createdAt,
+      );
+    }
+
+    return RegularTask(
+      id: id,
+      title: title,
+      priority: priority,
+      deadline: deadline,
+      createdAt: createdAt,
+    );
   }
-
-  Map<String, dynamic> toJson();
 
   factory Task.fromJson(Map<String, dynamic> json) {
     final id = json['id'] as String;
@@ -105,6 +117,41 @@ abstract class Task implements Comparable<Task> {
       );
     }
   }
+
+  /// Generates a random 8-character alphanumeric ID.
+  static String _generateId() {
+    final random = Random();
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    return String.fromCharCodes(
+      Iterable.generate(
+        8,
+        (_) => chars.codeUnitAt(random.nextInt(chars.length)),
+      ),
+    );
+  }
+
+  final String id;
+  final String title;
+  final Priority priority;
+  final DateTime? deadline;
+  final bool isDone;
+  final DateTime createdAt;
+
+  Task copyWith({
+    String? id,
+    String? title,
+    Priority? priority,
+    DateTime? deadline,
+    bool? isDone,
+    DateTime? createdAt,
+  });
+
+  void markDone() {
+    // Tasks are immutable, so markDone returns a new instance
+    // This method is kept for backward compatibility but should use copyWith
+  }
+
+  Map<String, dynamic> toJson();
 
   @override
   int compareTo(Task other) {
@@ -156,24 +203,17 @@ abstract class Task implements Comparable<Task> {
 }
 
 class UrgentTask extends Task {
-  final int urgencyLevel; // 1-5, where 5 is most urgent
-
   UrgentTask({
-    required String id,
-    required String title,
-    required Priority priority,
-    DateTime? deadline,
+    required super.id,
+    required super.title,
+    required super.priority,
+    super.deadline,
     required this.urgencyLevel,
     DateTime? createdAt,
-    bool isDone = false,
-  }) : super(
-          id: id,
-          title: title,
-          priority: priority,
-          deadline: deadline,
-          isDone: isDone,
-          createdAt: createdAt ?? DateTime.now(),
-        );
+    super.isDone = false,
+  }) : super(createdAt: createdAt ?? DateTime.now());
+
+  final int urgencyLevel; // 1-5, where 5 is most urgent
 
   @override
   UrgentTask copyWith({
@@ -230,20 +270,13 @@ class UrgentTask extends Task {
 
 class RegularTask extends Task {
   RegularTask({
-    required String id,
-    required String title,
-    required Priority priority,
-    DateTime? deadline,
+    required super.id,
+    required super.title,
+    required super.priority,
+    super.deadline,
     DateTime? createdAt,
-    bool isDone = false,
-  }) : super(
-          id: id,
-          title: title,
-          priority: priority,
-          deadline: deadline,
-          isDone: isDone,
-          createdAt: createdAt ?? DateTime.now(),
-        );
+    super.isDone = false,
+  }) : super(createdAt: createdAt ?? DateTime.now());
 
   @override
   RegularTask copyWith({

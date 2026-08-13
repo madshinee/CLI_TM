@@ -209,14 +209,14 @@ void main() {
     test('addTask rejects empty title', () async {
       expect(
         () => service.addTask('', Priority.low, null),
-        throwsA(isA<TaskManagerException>()),
+        throwsA(isA<TaskException>()),
       );
     });
 
     test('addTask rejects whitespace-only title', () async {
       expect(
         () => service.addTask('   ', Priority.low, null),
-        throwsA(isA<TaskManagerException>()),
+        throwsA(isA<TaskException>()),
       );
     });
 
@@ -283,7 +283,7 @@ void main() {
 
     test('getTaskCount filters correctly', () async {
       final task1 = await service.addTask('Done task', Priority.low, null);
-      final task2 = await service.addTask('Pending task', Priority.low, null);
+      await service.addTask('Pending task', Priority.low, null);
 
       await service.markTaskDone(task1.id);
 
